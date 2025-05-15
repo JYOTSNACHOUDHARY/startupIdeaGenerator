@@ -1,0 +1,9 @@
+langchain
+langchain-core>=0.2.19
+langchain-openai
+langchain-community
+python-dotenv
+langgraph
+langgraph-checkpoint-sqlite
+langsmith
+pydantic
