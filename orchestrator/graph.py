@@ -1,13 +1,9 @@
 
 from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, START, END
-from langgraph.types import Command, interrupt
-from langgraph.checkpoint.memory import MemorySaver
 from typing import Annotated
 from langgraph.graph.message import add_messages
 from typing import List
-from PIL import Image as PILImage
-from io import BytesIO
 from tools.competitor_finder import competitor_finder
 from tools.legal_risk_checker import legal_risk_checker
 from tools.market_size_estimator import market_size_estimator
@@ -20,11 +16,10 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from pydantic import BaseModel, Field
 
 from langchain.chat_models import init_chat_model
-llm = init_chat_model("gpt-4o", model_provider = "openai")
+llm = init_chat_model("gpt-4o", model_provider="openai")
 
 validator_prompt_template = ChatPromptTemplate.from_template(validator_prompt)
 decision_prompt_template = ChatPromptTemplate.from_template(decision_prompt)
-
 
 
 class State(TypedDict):
@@ -36,8 +31,8 @@ class State(TypedDict):
 
 class StartupIdeas(BaseModel):
     startup_ideas: List[str] = Field(
-        description="List of Generated startup ideas",
-    )
+        description="List of Generated startup ideas")
+
 
 def startup_ideas(state: State):
     print("---human input----")
@@ -59,7 +54,6 @@ def validate_ideas(state: State):
 
     llm_with_tools = llm.bind_tools(tools)
     validator_prompt = validator_prompt_template.invoke({"idea": f"{startup_ideas}", "domain": f"{domain}"})
-    #print(f"prompt template: ", validator_prompt)
     ai_msg = llm_with_tools.invoke(validator_prompt)
     print(f"decided tools to be used are: ", ai_msg.tool_calls)
     return {"messages": ai_msg}
@@ -71,7 +65,7 @@ def decision_maker(state: State):
     startup_ideas = state["startup_ideas_list"]
     decision_maker_prompt = decision_prompt_template.invoke({"idea": f"{startup_ideas}", "domain": f"{domain}", "market_research": f"{market_research}"})
     ai_msg = llm.invoke(decision_maker_prompt)
-    print("Decison maker response:: ", end="\n")
+    print("Decision maker response:: ", end="\n")
     print(ai_msg.content)
     return {"messages": ai_msg}
 
@@ -93,43 +87,40 @@ builder.add_conditional_edges(
 builder.add_edge("tools", "decision_maker")
 builder.add_edge("decision_maker", END)
 
-
-
-
-memory = MemorySaver()
-
 graph = builder.compile()
 
 
+# To create image for compiled graph
+# from PIL import Image as PILImage
+# from io import BytesIO
 # img_bytes = graph.get_graph().draw_mermaid_png(max_retries=5, retry_delay=2.0)
 # img = PILImage.open(BytesIO(img_bytes))
 # img.show()
 
 
-def stream_graph_updates(user_input: str):
-    for event in graph.stream({"user_input": user_input}):
-        for value in event.values():
-            response = value["messages"]
-            if hasattr(response, "content"):
-                print("Assistant:", value["messages"].content)
-            else:
-                print("Assistant:", value["messages"])
-            if isinstance(value["messages"], List):
-                print("Assistant:", len(value["messages"]))
-
-
-while True:
-    try:
-        user_input = input("User: ")
-        if user_input.lower() in ["quit", "exit", "q"]:
-            print("Goodbye!")
-            break
-        stream_graph_updates(user_input)
-    except:
-        # fallback if input() is not available
-        user_input = "What do you know about LangGraph?"
-        print("User: " + user_input)
-        stream_graph_updates(user_input)
-        break
-
-
+# Run to interact through console
+# def stream_graph_updates(user_input: str):
+#     for event in graph.stream({"user_input": user_input}):
+#         for value in event.values():
+#             response = value["messages"]
+#             if hasattr(response, "content"):
+#                 print("Assistant:", value["messages"].content)
+#             else:
+#                 print("Assistant:", value["messages"])
+#             if isinstance(value["messages"], List):
+#                 print("Assistant:", len(value["messages"]))
+#
+#
+# while True:
+#     try:
+#         user_input = input("User: ")
+#         if user_input.lower() in ["quit", "exit", "q"]:
+#             print("Goodbye!")
+#             break
+#         stream_graph_updates(user_input)
+#     except:
+#         # fallback if input() is not available
+#         user_input = "What do you know about LangGraph?"
+#         print("User: " + user_input)
+#         stream_graph_updates(user_input)
+#         break
